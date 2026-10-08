@@ -86,13 +86,12 @@ export default async function handler(req, res) {
         : mime
     });
 
-    const result = await openai.audio.transcriptions.create({
-      file,
-      model: "whisper-1",
-      language: "mn",
-      response_format: "verbose_json",
-      timestamp_granularities: ["segment"]
-    });
+  const result = await openai.audio.transcriptions.create({
+  file,
+  model: "whisper-1",
+  response_format: "verbose_json",
+  timestamp_granularities: ["segment"]
+});
 
     return res.status(200).json({
       text: result.text || "",
