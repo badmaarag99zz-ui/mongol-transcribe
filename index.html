@@ -9,7 +9,39 @@ function roundedMinutes(seconds){const m=Math.floor(seconds/60);const h=Math.flo
 function fmt(s){s=Math.floor(s);return [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(x=>String(x).padStart(2,'0')).join(':');}
 $('audioFile').onchange=()=>{file=$('audioFile').files[0];if(!file)return;if(file.size>25*1024*1024){alert('25MB-аас бага файл сонгоно уу.');file=null;return;}const url=URL.createObjectURL(file);$('player').src=url;$('player').classList.remove('hidden');$('convert').disabled=false;$('fileInfo').textContent=file.name+' · '+(file.size/1024/1024).toFixed(1)+'MB';};
 $('player').onloadedmetadata=()=>{const secs=$('player').duration;if(Number.isFinite(secs)){const mins=roundedMinutes(secs);$('fileInfo').textContent=file.name+' · '+fmt(secs)+' · тооцох '+Math.floor(mins/60)+':'+String(mins%60).padStart(2,'0')+' · '+money(mins*7900/60)+' (туршилтын үнэ)';}};
-async function post(url,data,isForm=false){const r=await fetch(url,{method:'POST',headers:isForm?{}:{'Content-Type':'application/json'},body:isForm?data:JSON.stringify(data)});let j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||'Серверийн алдаа');return j;}
+
+async function post(url, data, isForm = false) {
+    const headers = {};
+    let body;
+
+    if (data instanceof File || data instanceof Blob) {
+        body = data;
+        headers["Content-Type"] =
+            data.type || "audio/mp4";
+    } else if (data instanceof FormData) {
+        body = data;
+    } else {
+        headers["Content-Type"] = "application/json";
+        body = JSON.stringify(data);
+    }
+
+    const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body
+    });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        throw new Error(
+            result.error || `Серверийн алдаа (${response.status})`
+        );
+    }
+
+    return result;
+}
+
 function showSegments(){const box=$('segments');box.replaceChildren();for(const s of segments){const div=document.createElement('div');div.className='segment';const t=document.createElement('span');t.className='time';t.textContent=fmt(s.start);t.onclick=()=>{$('player').currentTime=s.start;$('player').play();};div.append(t,document.createTextNode(s.text));box.append(div);}if(!segments.length)box.textContent='Энэ файлд цагийн хэсгүүд ирсэнгүй.';}
 $('convert').onclick=async()=>{if(!file)return;const b=$('convert');b.disabled=true;$('status').textContent='Аудиог хөрвүүлж байна...';try{const j = await post('/api/transcribe', file, true);raw=j.text;segments=j.segments||[];showSegments();$('editor').value=raw;$('result').classList.remove('hidden');$('status').textContent='Хөрвүүлэлт дууслаа ✓';}catch(e){$('status').textContent='Алдаа: '+e.message;}finally{b.disabled=false;}};
 $('useRaw').onclick=()=>$('editor').value=raw;
